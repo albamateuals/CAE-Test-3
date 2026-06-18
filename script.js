@@ -219,7 +219,7 @@ function updateListeningPlayer(paper) {
           <strong>Listening audio</strong>
           <span>Play once and navigate through all Listening parts.</span>
         </div>
-        <audio controls preload="metadata" src="audio/C1 Advanced 4, Test 3, Full Listening.mp3"></audio>
+        <audio controls preload="metadata"></audio>
       </div>
     `;
     host.querySelector("[data-audio-toggle]").addEventListener("click", () => {
@@ -232,6 +232,13 @@ function updateListeningPlayer(paper) {
   }
   const show = paper.id === "listening";
   host.hidden = !show;
+  const audio = host.querySelector("audio");
+  const part = show ? currentPart() : null;
+  const nextSrc = part && part.audio ? part.audio : "";
+  if (audio && nextSrc && audio.getAttribute("src") !== nextSrc) {
+    audio.setAttribute("src", nextSrc);
+    audio.load();
+  }
   host.classList.toggle("minimized", !!appState.audioMinimized);
   const toggle = host.querySelector("[data-audio-toggle]");
   if (toggle) toggle.textContent = appState.audioMinimized ? "Audio" : "Minimise";

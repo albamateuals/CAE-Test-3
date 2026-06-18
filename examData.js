@@ -184,7 +184,7 @@ const examData = {
           id: "l1",
           title: "Part 1",
           taskType: "listeningChoice",
-          audio: "audio/C1 Advanced 4, Test 3, Part 1.mp3",
+          audio: "./C1%20Advanced%204%2C%20Test%203%2C%20Part%201.mp3",
           instructions: "You will hear three different extracts. For questions 1-6, choose the answer (A, B or C) which fits best according to what you hear.",
           groups: [
             {
@@ -217,7 +217,7 @@ const examData = {
           id: "l2",
           title: "Part 2",
           taskType: "listeningText",
-          audio: "audio/C1 Advanced 4, Test 3, Part 2.mp3",
+          audio: "./C1%20Advanced%204%2C%20Test%203%2C%20Part%202.mp3",
           heading: "Volunteering on a shark research project on the island of Fiji",
           instructions: "You will hear a student called Alice Brown talking about working as a volunteer on a shark research project on the island of Fiji. For questions 7-14, complete the sentences with a word or short phrase.",
           questions: [
@@ -235,7 +235,7 @@ const examData = {
           id: "l3",
           title: "Part 3",
           taskType: "listeningChoice",
-          audio: "audio/C1 Advanced 4, Test 3, Part 3.mp3",
+          audio: "./C1%20Advanced%204%2C%20Test%203%2C%20Part%203.mp3",
           instructions: "You will hear part of an interview with two writers and researchers, Anna Baldwin and Richard Simmons, on the topic of handwriting. For questions 15-20, choose the answer (A, B, C or D) which fits best according to what you hear.",
           questions: [
             q(15, "choice", ["it is significant in the lives of young adolescents.", "it is increasing in popularity.", "it plays an important role in encouraging creativity.", "it deserves reassessment in the light of new developments."], null, "Anna believes handwriting should be studied because"),
@@ -250,7 +250,7 @@ const examData = {
           id: "l4",
           title: "Part 4",
           taskType: "listeningMultiMatch",
-          audio: "audio/C1 Advanced 4, Test 3, Part 4.mp3",
+          audio: "./C1%20Advanced%204%2C%20Test%203%2C%20Part%204.mp3",
           instructions: "You will hear five short extracts in which people are talking about taking a course of driving lessons. While you listen, you must complete both tasks.",
           sets: [
             {
