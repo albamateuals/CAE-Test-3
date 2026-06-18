@@ -11,11 +11,8 @@ This project is a static website. It does not need a backend server, build step,
    - `style.css`
    - `script.js`
    - `examData.js`
-   - `C1 Advanced 4, Test 3, Part 1.mp3`
-   - `C1 Advanced 4, Test 3, Part 2.mp3`
-   - `C1 Advanced 4, Test 3, Part 3.mp3`
-   - `C1 Advanced 4, Test 3, Part 4.mp3`
-4. Keep the audio files in the same published folder as `index.html`. The exam uses URL-encoded relative root paths for the MP3 files.
+   - `audio/`
+4. Keep the four audio files inside the `audio` folder. The Listening playlist uses URL-encoded relative paths such as `audio/C1%20Advanced%204%2C%20Test%203%2C%20Part%201.mp3`.
 
 ## 2. Enable GitHub Pages
 
@@ -56,7 +53,7 @@ The exam should open from `index.html` automatically.
 ## Deployment Checks
 
 - All application paths are relative.
-- Audio files are referenced from relative root-level MP3 paths.
+- Audio files are referenced from the relative `audio/` folder.
 - Reading and Listening run fully in the browser.
 - Scoring, highlighting, notes, reset, and navigation use browser storage only.
 - No local computer paths, PDF paths, or server-only dependencies are required.

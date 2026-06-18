@@ -1,4 +1,10 @@
 const STORE = "cae-native-test-3-separated";
+const LISTENING_PLAYLIST = [
+  { label: "Part 1", src: "audio/C1%20Advanced%204%2C%20Test%203%2C%20Part%201.mp3" },
+  { label: "Part 2", src: "audio/C1%20Advanced%204%2C%20Test%203%2C%20Part%202.mp3" },
+  { label: "Part 3", src: "audio/C1%20Advanced%204%2C%20Test%203%2C%20Part%203.mp3" },
+  { label: "Part 4", src: "audio/C1%20Advanced%204%2C%20Test%203%2C%20Part%204.mp3" }
+];
 if (new URLSearchParams(window.location.search).get("reset") === "1") {
   localStorage.removeItem(STORE);
 }
@@ -6,6 +12,7 @@ const appState = loadState();
 let draggedParagraph = null;
 let selectedParagraph = null;
 let listeningPlayerCreated = false;
+let listeningTrackIndex = 0;
 
 function loadState() {
   const base = { screen: "start", paper: null, part: null, answers: {}, seconds: {}, running: null, submitted: {}, notes: {}, notesOpen: {}, highlights: {}, audioMinimized: false };
@@ -217,8 +224,10 @@ function updateListeningPlayer(paper) {
       <div class="audio-panel-body">
         <div>
           <strong>Listening audio</strong>
-          <span>Play once and navigate through all Listening parts.</span>
+          <span data-audio-track>Track 1 of 4: Part 1</span>
+          <span data-audio-time>0:00 / 0:00</span>
         </div>
+        <progress class="audio-progress" data-audio-progress value="0" max="1"></progress>
         <audio controls preload="metadata"></audio>
       </div>
     `;
@@ -227,22 +236,66 @@ function updateListeningPlayer(paper) {
       saveState();
       updateListeningPlayer(currentPaper() || { id: null });
     });
+    const audio = host.querySelector("audio");
+    audio.addEventListener("ended", playNextListeningTrack);
+    audio.addEventListener("loadedmetadata", updateListeningPlaylistMeta);
+    audio.addEventListener("timeupdate", updateListeningPlaylistMeta);
+    audio.addEventListener("play", updateListeningPlaylistMeta);
+    audio.addEventListener("pause", updateListeningPlaylistMeta);
     document.body.appendChild(host);
     listeningPlayerCreated = true;
   }
   const show = paper.id === "listening";
   host.hidden = !show;
-  const audio = host.querySelector("audio");
-  const part = show ? currentPart() : null;
-  const nextSrc = part && part.audio ? part.audio : "";
-  if (audio && nextSrc && audio.getAttribute("src") !== nextSrc) {
-    audio.setAttribute("src", nextSrc);
-    audio.load();
-  }
+  if (show) setListeningTrack(listeningTrackIndex, false);
   host.classList.toggle("minimized", !!appState.audioMinimized);
   const toggle = host.querySelector("[data-audio-toggle]");
   if (toggle) toggle.textContent = appState.audioMinimized ? "Audio" : "Minimise";
   document.body.classList.toggle("listening-active", show);
+  updateListeningPlaylistMeta();
+}
+
+function setListeningTrack(index, shouldPlay) {
+  const host = document.getElementById("globalListeningPlayer");
+  const audio = host ? host.querySelector("audio") : null;
+  if (!audio) return;
+  listeningTrackIndex = Math.max(0, Math.min(index, LISTENING_PLAYLIST.length - 1));
+  const track = LISTENING_PLAYLIST[listeningTrackIndex];
+  if (audio.getAttribute("src") !== track.src) {
+    audio.setAttribute("src", track.src);
+    audio.load();
+  }
+  updateListeningPlaylistMeta();
+  if (shouldPlay) audio.play().catch(() => updateListeningPlaylistMeta());
+}
+
+function playNextListeningTrack() {
+  if (listeningTrackIndex >= LISTENING_PLAYLIST.length - 1) {
+    updateListeningPlaylistMeta();
+    return;
+  }
+  setListeningTrack(listeningTrackIndex + 1, true);
+}
+
+function updateListeningPlaylistMeta() {
+  const host = document.getElementById("globalListeningPlayer");
+  const audio = host ? host.querySelector("audio") : null;
+  if (!host || !audio) return;
+  const track = LISTENING_PLAYLIST[listeningTrackIndex];
+  const trackNode = host.querySelector("[data-audio-track]");
+  const timeNode = host.querySelector("[data-audio-time]");
+  const progressNode = host.querySelector("[data-audio-progress]");
+  if (trackNode) trackNode.textContent = `Track ${listeningTrackIndex + 1} of ${LISTENING_PLAYLIST.length}: ${track.label}`;
+  if (timeNode) timeNode.textContent = `${formatMediaTime(audio.currentTime)} / ${formatMediaTime(audio.duration)}`;
+  if (progressNode) progressNode.value = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.currentTime / audio.duration : 0;
+}
+
+function formatMediaTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const rounded = Math.floor(seconds);
+  const minutes = Math.floor(rounded / 60);
+  const remainder = String(rounded % 60).padStart(2, "0");
+  return `${minutes}:${remainder}`;
 }
 
 function renderListeningSentence(item) {
