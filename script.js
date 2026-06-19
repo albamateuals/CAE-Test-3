@@ -15,7 +15,7 @@ let listeningPlayerCreated = false;
 let listeningTrackIndex = 0;
 
 function loadState() {
-  const base = { screen: "start", paper: null, part: null, answers: {}, seconds: {}, running: null, submitted: {}, notes: {}, notesOpen: {}, highlights: {}, audioMinimized: false };
+  const base = { screen: "start", paper: null, part: null, answers: {}, seconds: {}, running: null, submitted: {}, notes: {}, notesOpen: {}, highlights: {}, showExplanations: {}, audioMinimized: false };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE)) || {};
     const merged = Object.assign(base, saved);
@@ -25,6 +25,7 @@ function loadState() {
     merged.notes = merged.notes || {};
     merged.notesOpen = merged.notesOpen || {};
     merged.highlights = merged.highlights || {};
+    merged.showExplanations = merged.showExplanations || {};
     if (!merged.screen) merged.screen = merged.paper ? "paper" : "start";
     return merged;
   } catch {
@@ -175,6 +176,7 @@ const renderer = {
         <strong>${item.word}</strong>
         <label>${item.second.replace("__________", `<input value="${esc(answer(item.number))}" data-input="${item.number}" aria-label="Question ${item.number} answer">`)}</label>
         ${feedbackNote(item.number)}
+        ${explanationBox(item.number)}
       </section>`).join("")}</div>`;
   },
   splitReading(part) {
@@ -308,6 +310,7 @@ function renderListeningSentence(item) {
         <input value="${esc(answer(item.number))}" data-input="${item.number}" aria-label="Question ${item.number} answer">
         <span class="sentence-after">${after}</span>
         ${feedbackNote(item.number)}
+        ${explanationBox(item.number)}
       </span>
     </label>`;
 }
@@ -341,6 +344,7 @@ function renderPart4Matrix(set, options, setIndex) {
         </table>
       </div>
       ${renderMatrixFeedback(set.questions)}
+      ${renderMatrixExplanations(set.questions)}
     </section>`;
 }
 
@@ -351,14 +355,14 @@ function withChoiceGaps(text, questions) {
     return `<span class="cloze-gap-wrap ${feedbackClass(Number(n))}"><b>${n}</b><select class="cloze-gap ${current ? "answered" : ""}" data-cloze-select="${n}" aria-label="Question ${n}">
       <option value="">________</option>
       ${item.options.map((option) => `<option value="${esc(option)}" ${current === option ? "selected" : ""}>${option}</option>`).join("")}
-    </select>${feedbackNote(Number(n))}</span>`;
+    </select>${feedbackNote(Number(n))}${explanationBox(Number(n))}</span>`;
   });
 }
 
 function withTextGaps(text, showPrompt = false, questions = []) {
   return text.replace(/\{(\d+)\}/g, (_, n) => {
     const item = questions.find((q) => q.number === Number(n));
-    return `<span class="inline-text-gap ${feedbackClass(Number(n))}"><b>${n}</b><input value="${esc(answer(Number(n)))}" data-input="${n}">${showPrompt && item ? `<em>${item.promptWord}</em>` : ""}${feedbackNote(Number(n))}</span>`;
+    return `<span class="inline-text-gap ${feedbackClass(Number(n))}"><b>${n}</b><input value="${esc(answer(Number(n)))}" data-input="${n}">${showPrompt && item ? `<em>${item.promptWord}</em>` : ""}${feedbackNote(Number(n))}${explanationBox(Number(n))}</span>`;
   });
 }
 
@@ -367,9 +371,9 @@ function withDropGaps(text) {
     const value = answer(Number(n));
     const option = currentPart().options.find((item) => item.key === value);
     if (option) {
-      return `<span class="inserted-paragraph ${feedbackClass(Number(n))}" data-drop="${n}" data-inserted-drag="${option.key}" draggable="true"><b>${n}</b>${esc(option.text)}<button type="button" data-clear-drop="${n}" aria-label="Remove paragraph from gap ${n}">Remove</button>${feedbackNote(Number(n))}</span>`;
+      return `<span class="inserted-paragraph ${feedbackClass(Number(n))}" data-drop="${n}" data-inserted-drag="${option.key}" draggable="true"><b>${n}</b>${esc(option.text)}<button type="button" data-clear-drop="${n}" aria-label="Remove paragraph from gap ${n}">Remove</button>${feedbackNote(Number(n))}${explanationBox(Number(n))}</span>`;
     }
-    return `<span class="drop-zone ${feedbackClass(Number(n))}" data-drop="${n}"><b>${n}</b>Drop paragraph here${feedbackNote(Number(n))}</span>`;
+    return `<span class="drop-zone ${feedbackClass(Number(n))}" data-drop="${n}"><b>${n}</b>Drop paragraph here${feedbackNote(Number(n))}${explanationBox(Number(n))}</span>`;
   });
 }
 
@@ -382,6 +386,7 @@ function choiceQuestions(questions) {
         return `<label class="${answer(item.number) === letter ? "checked" : ""} ${choiceFeedbackClass(item.number, letter)}"><input type="radio" name="q${item.number}" value="${letter}" data-radio="${item.number}"><b>${letter}</b><span>${option}</span></label>`;
       }).join("")}</div>
       ${feedbackNote(item.number)}
+      ${explanationBox(item.number)}
     </section>`).join("");
 }
 
@@ -393,6 +398,7 @@ function selectQuestions(questions) {
         ${item.options.map((o) => `<option value="${o}" ${answer(item.number) === o ? "selected" : ""}>${o}</option>`).join("")}
       </select>
       ${feedbackNote(item.number)}
+      ${explanationBox(item.number)}
     </label>`).join("");
 }
 
@@ -517,6 +523,12 @@ function bind() {
   if (submitButton) submitButton.addEventListener("click", showResults);
   const tryAgainButton = document.querySelector("[data-command='try-again']");
   if (tryAgainButton) tryAgainButton.addEventListener("click", () => resetPaper(appState.paper));
+  const explanationsToggle = document.querySelector("[data-command='toggle-explanations']");
+  if (explanationsToggle) explanationsToggle.addEventListener("click", () => {
+    appState.showExplanations[appState.paper] = !appState.showExplanations[appState.paper];
+    saveState();
+    render();
+  });
   const notesToggle = document.querySelector("[data-command='toggle-notes']");
   if (notesToggle) notesToggle.addEventListener("click", () => {
     appState.notesOpen[appState.paper] = !appState.notesOpen[appState.paper];
@@ -579,6 +591,7 @@ function resetPaper(paperId) {
   });
   appState.notes[paperId] = "";
   appState.notesOpen[paperId] = false;
+  appState.showExplanations[paperId] = false;
   appState.submitted[paperId] = false;
   appState.seconds[paperId] = paper.duration * 60;
   if (appState.running === paperId) appState.running = null;
@@ -651,6 +664,7 @@ function renderResultsPanel(paperId) {
   const results = calculatePaperResults(paperId);
   const paper = examData.papers.find((item) => item.id === paperId);
   const tryAgain = `<button class="try-again" data-command="try-again">Try again</button>`;
+  const explanations = `<button class="explanations-toggle" data-command="toggle-explanations">${appState.showExplanations[paperId] ? "Hide explanations" : "Show explanations"}</button>`;
   return `
     <section class="results-panel">
       <div>
@@ -663,7 +677,7 @@ function renderResultsPanel(paperId) {
         <span class="grade ${results.band}"><b>${results.grade}</b>Grade / 10</span>
       </div>
       <p class="score-comment">${results.comment}</p>
-      ${tryAgain}
+      <div class="results-actions">${explanations}${tryAgain}</div>
     </section>`;
 }
 
@@ -790,9 +804,9 @@ function feedbackNote(number) {
   if (!isPaperSubmitted(appState.paper)) return "";
   if (appState.paper === "reading" && number >= 25 && number <= 30) {
     const score = readingPart4Score(number);
-    if (score === 2) return `<span class="feedback-note correct">Correct — 2/2</span>`;
-    if (score === 1) return `<span class="feedback-note partial">Partially correct — 1/2. Correct: ${esc(formatCorrectAnswers(appState.paper, number))}</span>`;
-    return `<span class="feedback-note incorrect">Incorrect — 0/2. Correct: ${esc(formatCorrectAnswers(appState.paper, number))}</span>`;
+    const tone = score === 2 ? "correct" : score === 1 ? "partial" : "incorrect";
+    const label = score === 2 ? "Correct — 2/2" : score === 1 ? "Partially correct — 1/2" : "Incorrect — 0/2";
+    return `<div class="part4-feedback"><span class="feedback-note ${tone}">${label}</span><span class="part4-correct-answer">Correct answer: ${esc(formatPart4CorrectAnswer(number))}</span></div>`;
   }
   if (isCorrect(appState.paper, number)) return `<span class="feedback-note correct">Correct</span>`;
   return `<span class="feedback-note incorrect">Correct: ${esc(formatCorrectAnswers(appState.paper, number))}</span>`;
@@ -803,6 +817,32 @@ function renderMatrixFeedback(questions) {
   const rows = questions.filter((question) => !isCorrect(appState.paper, question.number));
   if (!rows.length) return `<div class="matrix-feedback correct">All answers in this task are correct.</div>`;
   return `<div class="matrix-feedback incorrect">${rows.map((question) => `<span>Question ${question.number}: correct answer ${esc(formatCorrectAnswers(appState.paper, question.number))}</span>`).join("")}</div>`;
+}
+
+function renderMatrixExplanations(questions) {
+  if (!shouldShowExplanations()) return "";
+  return `<div class="matrix-explanations">${questions.map((question) => explanationBox(question.number)).join("")}</div>`;
+}
+
+function shouldShowExplanations() {
+  return !!appState.paper && isPaperSubmitted(appState.paper) && !!appState.showExplanations[appState.paper];
+}
+
+function explanationBox(number) {
+  if (!shouldShowExplanations()) return "";
+  const text = examData.explanations && examData.explanations[`${appState.paper}-${number}`];
+  if (!text) return "";
+  return `<div class="explanation-box ${explanationTone(number)}"><b>Explanation</b><span>${esc(text)}</span></div>`;
+}
+
+function explanationTone(number) {
+  if (appState.paper === "reading" && number >= 25 && number <= 30) {
+    const score = readingPart4Score(number);
+    if (score === 2) return "correct";
+    if (score === 1) return "partial";
+    return "incorrect";
+  }
+  return isCorrect(appState.paper, number) ? "correct" : "incorrect";
 }
 
 function isCorrect(paperId, number) {
@@ -848,6 +888,12 @@ function answerMatches(userAnswer, acceptedAnswers) {
 
 function formatCorrectAnswers(paperId, number) {
   return correctAnswers(paperId, number).join(" / ");
+}
+
+function formatPart4CorrectAnswer(number) {
+  const raw = examData.answerKey[`reading-${number}`];
+  if (!raw || !raw.chunks) return formatCorrectAnswers("reading", number);
+  return raw.chunks.map((chunk) => chunk.join(" / ")).join(" | ");
 }
 
 function isPaperSubmitted(paperId) {
