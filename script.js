@@ -1,4 +1,6 @@
 const STORE = "cae-native-test-3-separated";
+const ACCESS_KEY = "cae-native-test-3-access";
+const ACCESS_PASSWORD = "C1mockJune26";
 const LISTENING_PLAYLIST = [
   { label: "Part 1", src: "audio/C1%20Advanced%204%2C%20Test%203%2C%20Part%201.mp3" },
   { label: "Part 2", src: "audio/C1%20Advanced%204%2C%20Test%203%2C%20Part%202.mp3" },
@@ -64,6 +66,10 @@ function setAnswer(number, value) {
 }
 
 function render() {
+  if (!hasExamAccess()) {
+    renderAccessScreen();
+    return;
+  }
   if (appState.screen === "overall") {
     renderOverallScreen();
     return;
@@ -104,6 +110,47 @@ function render() {
   updateListeningPlayer(paper);
   bind();
   applyStoredHighlights();
+}
+
+function hasExamAccess() {
+  return sessionStorage.getItem(ACCESS_KEY) === "granted";
+}
+
+function renderAccessScreen(error = "") {
+  document.body.classList.remove("listening-active");
+  const host = document.getElementById("globalListeningPlayer");
+  if (host) host.hidden = true;
+  document.getElementById("app").innerHTML = `
+    <main class="access-screen">
+      <form class="access-panel" data-access-form>
+        <div>
+          <span>${examData.subtitle}</span>
+          <h1>C1 Advanced Digital Mock</h1>
+        </div>
+        <label>
+          <span>Password</span>
+          <input type="password" data-access-password autocomplete="current-password" autofocus>
+        </label>
+        ${error ? `<p class="access-error">${error}</p>` : ""}
+        <button type="submit">Enter exam</button>
+      </form>
+    </main>`;
+  bindAccessScreen();
+}
+
+function bindAccessScreen() {
+  const form = document.querySelector("[data-access-form]");
+  if (!form) return;
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = document.querySelector("[data-access-password]");
+    if (input && input.value === ACCESS_PASSWORD) {
+      sessionStorage.setItem(ACCESS_KEY, "granted");
+      render();
+      return;
+    }
+    renderAccessScreen("Incorrect password. Please try again.");
+  });
 }
 
 function renderStartScreen() {
